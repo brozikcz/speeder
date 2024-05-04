@@ -92,10 +92,11 @@ with InfluxDBClient(
                 try:
                     json_result = json.loads(result.stdout)
                 except json.decoder.JSONDecodeError as err:
-                    logger.debug(
+                    logger.error(
                         f"Failed to parse JSON results for server ID: {server_id}.\nError: {err}"
                     )
                     continue
+                
                 with client.write_api(write_options=SYNCHRONOUS) as write_api:
                     record = [
                         {
@@ -126,6 +127,12 @@ with InfluxDBClient(
                         f"Writing record to InfluxDB bucket: {SPEEDER_INFLUXDB_BUCKET} for speedtest at {json_result[0]['timestamp']} using server ID: {server_id}."
                     )
                     logger.debug(f"Record:\n{record}")
+                try:
                     write_api.write(bucket=SPEEDER_INFLUXDB_BUCKET, record=record)
+                except Exception as err:
+                    logger.error(
+                        f"Failed to send record to InfluxDB.\nError: {err}"
+                    )
+                    continue
         logger.debug(f"Sleeping for {SPEEDER_SPEEDTEST_INTERVAL} seconds.")
         time.sleep(SPEEDER_SPEEDTEST_INTERVAL)
